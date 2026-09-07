@@ -67,7 +67,8 @@ jobs:
           local-dir: ./frontend/dist/
           server-dir: /midtract.dbx.web.id/
           dangerous-clean-slate: false
-
+          sftp: false
+          security: loose # ← Tambahkan ini untuk bypass certificate mismatch
       # 4. FTP Deploy Backend ke Folder Application Root Node.js
       - name: FTP Deploy Backend
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -82,3 +83,5 @@ jobs:
             **/.git*/**
             **/node_modules/**
             .env
+          sftp: false
+          security: loose
