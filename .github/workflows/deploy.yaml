@@ -42,9 +42,12 @@ jobs:
         env:
           FTP_SERVER_RAW: ${{ secrets.FTP_SERVER }}
         run: |
-          ftp_host="${FTP_SERVER_RAW#ftp://}"
+          ftp_host="$(printf '%s' "$FTP_SERVER_RAW" | tr -d '\r\n' | xargs)"
+          ftp_host="${ftp_host#ftp://}"
           ftp_host="${ftp_host#ftps://}"
+          ftp_host="${ftp_host##*@}"
           ftp_host="${ftp_host%%/*}"
+          ftp_host="${ftp_host%%:*}"
           if [ -z "$ftp_host" ]; then
             echo "FTP_SERVER is empty after normalization" >&2
             exit 1
