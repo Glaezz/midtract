@@ -43,8 +43,11 @@ jobs:
           FTP_SERVER_RAW: ${{ secrets.FTP_SERVER }}
         run: |
           ftp_host="$(printf '%s' "$FTP_SERVER_RAW" | tr -d '\r\n' | xargs)"
-          ftp_host="${ftp_host#ftp://}"
-          ftp_host="${ftp_host#ftps://}"
+          ftp_host="${ftp_host#\"}"
+          ftp_host="${ftp_host%\"}"
+          ftp_host="${ftp_host#\'}"
+          ftp_host="${ftp_host%\'}"
+          ftp_host="$(printf '%s' "$ftp_host" | sed -E 's#^[[:alpha:]][[:alnum:]+.-]*://##')"
           ftp_host="${ftp_host##*@}"
           ftp_host="${ftp_host%%/*}"
           ftp_host="${ftp_host%%:*}"
