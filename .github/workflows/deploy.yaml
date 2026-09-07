@@ -1,6 +1,5 @@
 name: Deploy Monorepo Subdomain to cPanel via FTP
 
-
 on:
   push:
     branches:
@@ -55,6 +54,9 @@ jobs:
             exit 1
           fi
           echo "server=$ftp_host" >> "$GITHUB_OUTPUT"
+
+      - name: Install ftp-deploy
+        run: npm install -g ftp-deploy
 
       # Deploy Frontend dengan Retry
       - name: FTP Deploy Frontend
