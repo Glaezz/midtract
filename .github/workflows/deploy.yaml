@@ -4,7 +4,8 @@ name: Deploy Monorepo Subdomain to cPanel via FTP
 # - SSH_HOST: SSH/SFTP server host (can include scheme/path; workflow normalizes it)
 # - SSH_PORT: SSH port (optional; defaults to 22)
 # - SSH_USERNAME: SSH user for deployment
-# - SSH_PRIVATE_KEY: private key (PEM/OpenSSH format) for SSH authentication
+# - SSH_PRIVATE_KEY: OpenSSH private key text for SSH authentication
+# - SSH_PRIVATE_KEY_PASSPHRASE: passphrase for SSH_PRIVATE_KEY
 on:
   push:
     branches:
@@ -73,9 +74,23 @@ jobs:
           echo "port=$ssh_port" >> "$GITHUB_OUTPUT"
 
       - name: Start SSH Agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SSH_PRIVATE_KEY_PASSPHRASE }}
+        run: |
+          eval "$(ssh-agent -s)"
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          cat > ~/.ssh/ssh_askpass.sh <<'EOF'
+          #!/bin/sh
+          printf '%s\n' "$SSH_PRIVATE_KEY_PASSPHRASE"
+          EOF
+          chmod 700 ~/.ssh/ssh_askpass.sh
+          DISPLAY=:0 SSH_ASKPASS=~/.ssh/ssh_askpass.sh setsid -w ssh-add ~/.ssh/deploy_key < /dev/null
 
       - name: Add SSH Host Key
         run: |
