@@ -1,11 +1,6 @@
 name: Deploy Monorepo Subdomain to cPanel via FTP
 
-# Required repository secrets for SSH/SFTP deployment:
-# - SSH_HOST: SSH/SFTP server host (can include scheme/path; workflow normalizes it)
-# - SSH_PORT: SSH port (optional; defaults to 22)
-# - SSH_USERNAME: SSH user for deployment
-# - SSH_PRIVATE_KEY: OpenSSH private key text for SSH authentication
-# - SSH_PRIVATE_KEY_PASSPHRASE: passphrase for SSH_PRIVATE_KEY
+
 on:
   push:
     branches:
@@ -28,109 +23,69 @@ jobs:
             frontend/package-lock.json
             backend/package-lock.json
 
-      # 1. Build Frontend dengan Environment Variable API Backend
       - name: Build Frontend (Vite)
         env:
-          VITE_API_BASE_URL: "https://api.midtract.dbx.web.id/api"
+          VITE_API_BASE_URL: "https://api.midtract.dbx.web.id/"
         run: |
           cd frontend
           npm ci
           npm run build
 
-      # 2. Install Dependencies Backend
       - name: Install Backend Dependencies
         run: |
           cd backend
           npm ci --production
 
-      - name: Normalize SSH Connection Inputs
-        id: ssh-conn
+      - name: Normalize FTP Server Host
+        id: ftp-server
         env:
-          SSH_HOST_RAW: ${{ secrets.SSH_HOST }}
-          SSH_PORT_RAW: ${{ secrets.SSH_PORT }}
+          FTP_SERVER_RAW: ${{ secrets.FTP_SERVER }}
         run: |
-          ssh_host="$(printf '%s' "$SSH_HOST_RAW" | tr -d '\r\n' | xargs)"
-          ssh_host="${ssh_host#\"}"
-          ssh_host="${ssh_host%\"}"
-          ssh_host="${ssh_host#\'}"
-          ssh_host="${ssh_host%\'}"
-          ssh_host="$(printf '%s' "$ssh_host" | sed -E 's#^[[:alpha:]][[:alnum:]+.-]*://##')"
-          ssh_host="${ssh_host##*@}"
-          ssh_host="${ssh_host%%/*}"
-          ssh_host="${ssh_host%%:*}"
-          if [ -z "$ssh_host" ]; then
-            echo "SSH_HOST is empty after normalization" >&2
+          ftp_host="$(printf '%s' "$FTP_SERVER_RAW" | tr -d '\r\n' | xargs)"
+          ftp_host="${ftp_host#\"}"
+          ftp_host="${ftp_host%\"}"
+          ftp_host="${ftp_host#\'}"
+          ftp_host="${ftp_host%\'}"
+          ftp_host="$(printf '%s' "$ftp_host" | sed -E 's#^[[:alpha:]][[:alnum:]+.-]*://##')"
+          ftp_host="${ftp_host##*@}"
+          ftp_host="${ftp_host%%/*}"
+          ftp_host="${ftp_host%%:*}"
+          if [ -z "$ftp_host" ]; then
+            echo "FTP_SERVER is empty after normalization" >&2
             exit 1
           fi
-          ssh_port="$(printf '%s' "$SSH_PORT_RAW" | tr -d '\r\n' | xargs)"
-          if [ -z "$ssh_port" ]; then
-            ssh_port="22"
-          fi
-          if ! [[ "$ssh_port" =~ ^[0-9]+$ ]]; then
-            echo "SSH_PORT must be numeric" >&2
-            exit 1
-          fi
-          echo "host=$ssh_host" >> "$GITHUB_OUTPUT"
-          echo "port=$ssh_port" >> "$GITHUB_OUTPUT"
+          echo "server=$ftp_host" >> "$GITHUB_OUTPUT"
 
-      - name: Start SSH Agent
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SSH_PRIVATE_KEY_PASSPHRASE }}
-        run: |
-          eval "$(ssh-agent -s)"
-          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
-          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          cat > ~/.ssh/ssh_askpass.sh <<'EOF'
-          #!/bin/sh
-          printf '%s\n' "$SSH_PRIVATE_KEY_PASSPHRASE"
-          EOF
-          chmod 700 ~/.ssh/ssh_askpass.sh
-          DISPLAY=:0 SSH_ASKPASS=~/.ssh/ssh_askpass.sh setsid -w ssh-add ~/.ssh/deploy_key < /dev/null
+      # Deploy Frontend dengan Retry
+      - name: FTP Deploy Frontend
+        uses: nick-invision/retry@v3
+        with:
+          timeout_minutes: 15
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: |
+            npx ftp-deploy --server ${{ steps.ftp-server.outputs.server }} \
+              --username ${{ secrets.FTP_USERNAME }} \
+              --password ${{ secrets.FTP_PASSWORD }} \
+              --local-dir ./frontend/dist/ \
+              --server-dir /midtract.dbx.web.id/ \
+              --exclude "**/.git*,**/node_modules/**,.env"
 
-      - name: Add SSH Host Key
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          ssh-keyscan -p "${{ steps.ssh-conn.outputs.port }}" "${{ steps.ssh-conn.outputs.host }}" >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-
-      - name: Install rsync
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y rsync
-          rsync --version
-
-      # 3. SFTP Deploy Frontend ke Folder Subdomain Frontend
-      - name: SFTP Deploy Frontend
-        run: |
-          rsync -az \
-            --omit-dir-times \
-            --no-perms \
-            --no-owner \
-            --no-group \
-            -e "ssh -p ${{ steps.ssh-conn.outputs.port }}" \
-            ./frontend/dist/ \
-            "${{ secrets.SSH_USERNAME }}@${{ steps.ssh-conn.outputs.host }}:/midtract.dbx.web.id/"
-
+      # Delay antara deploy frontend dan backend untuk menghindari connection reset
       - name: Wait before backend deployment
-        run: sleep 15
+        run: sleep 10
 
-      # 4. SFTP Deploy Backend ke Folder Application Root Node.js
-      - name: SFTP Deploy Backend
-        run: |
-          rsync -az \
-            --omit-dir-times \
-            --no-perms \
-            --no-owner \
-            --no-group \
-            --exclude '.git*' \
-            --exclude 'node_modules/' \
-            --exclude '.env' \
-            -e "ssh -p ${{ steps.ssh-conn.outputs.port }}" \
-            ./backend/ \
-            "${{ secrets.SSH_USERNAME }}@${{ steps.ssh-conn.outputs.host }}:/api_midtract/"
+      # Deploy Backend dengan Retry
+      - name: FTP Deploy Backend
+        uses: nick-invision/retry@v3
+        with:
+          timeout_minutes: 15
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: |
+            npx ftp-deploy --server ${{ steps.ftp-server.outputs.server }} \
+              --username ${{ secrets.FTP_USERNAME }} \
+              --password ${{ secrets.FTP_PASSWORD }} \
+              --local-dir ./backend/ \
+              --server-dir /api_midtract/ \
+              --exclude "**/.git*,**/node_modules/**,.env"
