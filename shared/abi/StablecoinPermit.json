@@ -1,0 +1,13 @@
+[
+  "function name() view returns (string)",
+  "function version() view returns (string)",
+  "function DOMAIN_SEPARATOR() view returns (bytes32)",
+  "function nonces(address owner) view returns (uint256)",
+  "function balanceOf(address account) view returns (uint256)",
+  "function allowance(address owner, address spender) view returns (uint256)",
+
+  "error ERC20InsufficientAllowance(address spender, uint256 allowance, uint256 needed)",
+  "error ERC20InsufficientBalance(address sender, uint256 balance, uint256 needed)",
+  "error ERC2612ExpiredSignature(uint256 deadline)",
+  "error ERC2612InvalidSigner(address signer, address owner)"
+]

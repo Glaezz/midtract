@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            BigInt   @id @default(autoincrement())
+  privyDid      String   @unique @map("privy_did")
+  email         String   @unique
+  walletAddress String   @unique @map("wallet_address")
+  name          String?
+  phoneNumber   String?  @map("phone_number")
+  isAdmin       Boolean  @default(false) @map("is_admin") // set manual di DB untuk demo -- lihat catatan resolveDispute
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  ordersAsSeller Order[] @relation("SellerOrders")
+  ordersAsBuyer  Order[] @relation("BuyerOrders")
+  logsAsActor    OrderLog[]
+
+  @@map("users")
+}
+
+model EwalletChannel {
+  id           BigInt   @id @default(autoincrement())
+  providerCode String   @unique @map("provider_code") // kode produk ASLI dari Okeconnect -- dipakai saat fetch beneran (bukan mock)
+  name         String
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("ewallet_channels")
+}
+
+model Order {
+  id                    BigInt    @id @default(autoincrement())
+  orderCode             String    @unique @map("order_code")
+  inviteToken           String    @unique @map("invite_token") // token acak murni, TIDAK di-decode dari orderCode -- lihat catatan keamanan
+  sellerId              BigInt    @map("seller_id")
+  buyerId               BigInt?   @map("buyer_id")
+  productName           String    @map("product_name")
+  productDescription    String?   @map("product_description")
+  amountIdr             BigInt    @map("amount_idr")
+  amountStablecoin      Decimal   @map("amount_stablecoin") @db.Decimal(18, 6)
+  stablecoinRateUsed    Decimal   @map("stablecoin_rate_used") @db.Decimal(18, 2)
+  sellerPayoutChannel   String    @map("seller_payout_channel")
+  sellerPayoutNumber    String    @map("seller_payout_number")
+  buyerPayoutChannel    String?   @map("buyer_payout_channel")
+  buyerPayoutNumber     String?   @map("buyer_payout_number")
+  courierName           String?   @map("courier_name")
+  courierReceiptNumber  String?   @map("courier_receipt_number")
+  status                String    @default("PENDING_PAYMENT")
+  txHashLock            String?   @map("tx_hash_lock")
+  txHashRelease         String?   @map("tx_hash_release")
+  signatureDeadlineAt   DateTime? @map("signature_deadline_at")
+  autoReleaseAt         DateTime? @map("auto_release_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  seller        User            @relation("SellerOrders", fields: [sellerId], references: [id])
+  buyer         User?           @relation("BuyerOrders", fields: [buyerId], references: [id])
+  logs          OrderLog[]
+  payments      Payment[]
+  payouts       Payout[]
+  refunds       Refund[]
+  onchainEvents OnchainEvent[]
+
+  @@map("orders")
+}
+
+model OrderLog {
+  id          BigInt   @id @default(autoincrement())
+  orderId     BigInt   @map("order_id")
+  statusFrom  String?  @map("status_from")
+  statusTo    String   @map("status_to")
+  description String
+  actorId     BigInt?  @map("actor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@map("order_logs")
+}
+
+model Payment {
+  id                    BigInt    @id @default(autoincrement())
+  orderId               BigInt    @map("order_id")
+  provider              String    @default("midtrans")
+  snapToken             String?   @unique @map("snap_token")             // id unik dari createTransaction, ADA SEJAK AWAL sebelum bayar
+  providerTransactionId String?   @unique @map("provider_transaction_id") // ID transaksi ASLI, baru terisi setelah settlement (webhook)
+  amountIdr             BigInt    @map("amount_idr")                     // TOTAL dibebankan ke pembeli: produk + platformFee + gatewayFee
+  platformFeeIdr        BigInt    @default(0) @map("platform_fee_idr")
+  gatewayFeeIdr         BigInt    @default(0) @map("gateway_fee_idr")
+  status                String    @default("PENDING")
+  paidAt                DateTime? @map("paid_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("payments")
+}
+
+model Payout {
+  id                BigInt    @id @default(autoincrement())
+  orderId           BigInt    @map("order_id")
+  provider          String    @default("okeconnect")
+  providerPayoutId  String?   @unique @map("provider_payout_id")
+  recipientChannel  String    @map("recipient_channel") // SNAPSHOT dari EwalletChannel.providerCode saat diproses -- bukan FK ke id, sengaja disalin sebagai nilai supaya riwayat tidak berubah kalau providerCode di master data diubah nanti
+  recipientNumber   String    @map("recipient_number")
+  amountIdr         BigInt    @map("amount_idr")
+  status            String    @default("PENDING")
+  disbursedAt       DateTime? @map("disbursed_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("payouts")
+}
+
+model Refund {
+  id               BigInt    @id @default(autoincrement())
+  orderId          BigInt    @map("order_id")
+  recipientChannel String    @map("recipient_channel") // SNAPSHOT dari EwalletChannel.providerCode, bukan FK -- lihat catatan di Payout
+  recipientNumber  String    @map("recipient_number")
+  amountIdr        BigInt    @map("amount_idr")
+  reason           String
+  triggerType      String    @map("trigger_type")
+  status           String    @default("PENDING")
+  refundedAt       DateTime? @map("refunded_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("refunds")
+}
+
+model OnchainEvent {
+  id               BigInt   @id @default(autoincrement())
+  orderId          BigInt   @map("order_id")
+  eventType        String   @map("event_type")
+  txHash           String   @map("tx_hash")
+  blockNumber      BigInt?  @map("block_number")
+  amountStablecoin Decimal  @map("amount_stablecoin") @db.Decimal(18, 6)
+  fromAddress      String?  @map("from_address") // dicatat SAAT ITU JUGA oleh relayer, bukan diturunkan ulang nanti -- snapshot, sama prinsipnya dengan recipientNumber di Payout
+  toAddress        String?  @map("to_address")
+  occurredAt       DateTime @default(now()) @map("occurred_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("onchain_events")
+}

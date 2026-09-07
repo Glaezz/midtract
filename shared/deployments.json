@@ -1,0 +1,9 @@
+{
+  "network": "injectiveTestnet",
+  "chainId": 1439,
+  "contractAddress": "0x33d4691f03Ecd2DAB03fbCD602095336c750E28b",
+  "deployTxHash": "0xf090372b54e5e3744d04e81892516fae8028cc563663fe836d4a4585ce439a8b",
+  "stablecoin": "0x0C382e685bbeeFE5d3d9C29e29E341fEE8E84C5d",
+  "relayer": "0x29a3ef79a72140986ef5105266146f29f0cad3f5",
+  "poolWallet": "0x4c43be32fa1a980e53f1f22eef20a89ffa63ce5d"
+}

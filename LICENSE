@@ -1,0 +1,82 @@
+========================================================================
+COPYRIGHT & BUSINESS SOURCE LICENSE 1.1 (BSL-1.1)
+========================================================================
+
+Copyright (c) 2026 [Nama Lengkap / Nama Perusahaan Kamu]. All Rights Reserved.
+Registered/Protected under Directorate General of Intellectual Property (DJKI),
+Ministry of Law and Human Rights, Republic of Indonesia.
+
+---
+
+1. LICENSED WORK & SCOPE
+
+---
+
+This Business Source License 1.1 applies to the software and source code
+contained in this repository, including all subdirectories (including but
+not limited to /frontend, /backend, /contract, and associated configurations).
+
+---
+
+2. ADDITIONAL USE GRANT (PERMITTED USES)
+
+---
+
+You are hereby granted permission to use, copy, modify, and test the Licensed
+Work FREE OF CHARGE strictly for the following non-commercial purposes:
+
+a. Personal, educational, research, and evaluation purposes.
+b. Security auditing, bug hunting, and code review.
+c. Local development environments and testnets.
+
+ANY COMMERCIAL PRODUCTION USE, DEPLOYMENT, OR OFFERING OF THE LICENSED WORK AS
+A PAID ESCROW / FINANCIAL SERVICE REQUIRES A SEPARATE COMMERCIAL LICENSE FROM
+THE LICENSOR.
+
+---
+
+3. CHANGE DATE & FUTURE OPEN SOURCE CONVERSION
+
+---
+
+On the Change Date specified below, this license will automatically terminate,
+and the Licensed Work will convert to and be permanently governed by the Change
+License specified below.
+
+Licensor: Midtract (Fieza Rausyan Al Ghifari)
+Licensed Work: Midtract Monorepo (Web2.5 Social Commerce Escrow Platform)
+Change Date: 2029-09-01
+Change License: Apache License, Version 2.0
+
+---
+
+4. BUSINESS SOURCE LICENSE TEXT (VERSION 1.1)
+
+---
+
+Parameters of the License:
+
+The Licensor grants you a non-exclusive, royalty-free, worldwide right to use,
+copy, modify, create derivative works of, and distribute the Licensed Work for
+Non-Commercial Purposes.
+
+"Non-Commercial Purposes" means any use of the Licensed Work that is not
+intended for or directed towards commercial advantage or monetary compensation.
+
+Redistributions of source code or binary forms must retain the above copyright
+notice, this list of conditions, the Additional Use Grant, and the following
+disclaimer.
+
+---
+
+5. DISCLAIMER OF WARRANTY & LIMITATION OF LIABILITY
+
+---
+
+THE LICENSED WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE LICENSED WORK OR THE USE OR OTHER DEALINGS IN
+THE LICENSED WORK.

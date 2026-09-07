@@ -1,0 +1,10 @@
+
+**/backend/**/.env
+**/backend/**/.env.*
+
+.env
+.env.*
+!.env.example
+
+**/node_modules
+

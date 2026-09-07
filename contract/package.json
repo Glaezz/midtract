@@ -1,0 +1,24 @@
+{
+  "name": "midtract-contract",
+  "version": "1.0.0",
+  "type": "module",
+  "license": "BSL-1.1",
+  "scripts": {
+    "build": "hardhat build",
+    "test": "hardhat test",
+    "abi": "node scripts/export-abi.js",
+    "deploy:testnet": "hardhat run scripts/deploy.js --network injectiveTestnet",
+    "verify:testnet": "hardhat run scripts/verify.js --network injectiveTestnet"
+  },
+  "keywords": [],
+  "author": "",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.7",
+    "dotenv": "^17.4.2",
+    "hardhat": "^3.13.0"
+  },
+  "dependencies": {
+    "@nomicfoundation/hardhat-verify": "^3.0.22",
+    "@openzeppelin/contracts": "^5.6.1"
+  }
+}
