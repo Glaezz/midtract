@@ -68,7 +68,12 @@ jobs:
           server-dir: /midtract.dbx.web.id/
           dangerous-clean-slate: false
           sftp: false
-          security: loose # ← Tambahkan ini untuk bypass certificate mismatch
+          security: loose
+          timeout: 60000
+
+      - name: Wait before backend deployment
+        run: sleep 15
+
       # 4. FTP Deploy Backend ke Folder Application Root Node.js
       - name: FTP Deploy Backend
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -85,3 +90,4 @@ jobs:
             .env
           sftp: false
           security: loose
+          timeout: 60000
