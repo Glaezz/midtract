@@ -39,7 +39,7 @@ jobs:
 
       # 3. FTP Deploy Frontend ke Folder Subdomain Frontend
       - name: FTP Deploy Frontend
-        uses: SamKirsch/ftp-deploy-action@v4.3.4
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
@@ -50,7 +50,7 @@ jobs:
 
       # 4. FTP Deploy Backend ke Folder Application Root Node.js
       - name: FTP Deploy Backend
-        uses: SamKirsch/ftp-deploy-action@v4.3.4
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
