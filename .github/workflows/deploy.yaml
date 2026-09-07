@@ -99,6 +99,9 @@ jobs:
           ssh-keyscan -p "${{ steps.ssh-conn.outputs.port }}" "${{ steps.ssh-conn.outputs.host }}" >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
+      - name: Install rsync
+        run: sudo apt-get update && sudo apt-get install -y rsync
+
       # 3. SFTP Deploy Frontend ke Folder Subdomain Frontend
       - name: SFTP Deploy Frontend
         run: |
