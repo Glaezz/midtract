@@ -37,11 +37,25 @@ jobs:
           cd backend
           npm ci --production
 
+      - name: Normalize FTP Server Host
+        id: ftp-server
+        env:
+          FTP_SERVER_RAW: ${{ secrets.FTP_SERVER }}
+        run: |
+          ftp_host="${FTP_SERVER_RAW#ftp://}"
+          ftp_host="${ftp_host#ftps://}"
+          ftp_host="${ftp_host%%/*}"
+          if [ -z "$ftp_host" ]; then
+            echo "FTP_SERVER is empty after normalization" >&2
+            exit 1
+          fi
+          echo "server=$ftp_host" >> "$GITHUB_OUTPUT"
+
       # 3. FTP Deploy Frontend ke Folder Subdomain Frontend
       - name: FTP Deploy Frontend
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ secrets.FTP_SERVER }}
+          server: ${{ steps.ftp-server.outputs.server }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./frontend/dist/
@@ -52,7 +66,7 @@ jobs:
       - name: FTP Deploy Backend
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ secrets.FTP_SERVER }}
+          server: ${{ steps.ftp-server.outputs.server }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./backend/
