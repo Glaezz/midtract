@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, ArrowLeft, Info } from '@phosphor-icons/react';
 import { useApiClient, getUserFriendlyErrorMessage } from '$lib/utils/apiClient';
 import { useRequireOnboarding } from '$lib/utils/useRequireOnboarding';
@@ -11,6 +11,7 @@ import { Button } from '$lib/components/atoms/Button';
 import { Field, TextInput, TextArea } from '$lib/components/atoms/Field';
 import { ProgressSteps } from '$lib/components/atoms/ProgressSteps';
 import { formatIDR } from '$lib/utils/format';
+import { getUsdcToIdrRate } from '$lib/utils/rate';
 
 type Order = { orderCode: string };
 
@@ -21,7 +22,7 @@ const STEPS = [
 ];
 
 export function RekberCreatePage() {
-  useRequireOnboarding();
+  const { allowance } = useRequireOnboarding();
 
   const [step, setStep] = useState(0);
   const [productName, setProductName] = useState('');
@@ -31,8 +32,13 @@ export function RekberCreatePage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [stableCoinRate, setStableCoinRate] = useState<number | null>(null);
   const { request } = useApiClient();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    getUsdcToIdrRate().then(setStableCoinRate);
+  }, []);
 
   const parsedAmount = amountIdr.trim() === '' ? 0 : Number(amountIdr);
   const breakdown = parsedAmount > 0 ? calculatePaymentBreakdown(parsedAmount) : null;
@@ -63,6 +69,29 @@ export function RekberCreatePage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitError(null);
+
+    // Validasi allowance sebelum submit
+    if (allowance === null) {
+      setSubmitError('Gagal memuat data wallet. Coba muat ulang halaman.');
+      return;
+    }
+
+    if (stableCoinRate === null) {
+      setSubmitError('Gagal memuat nilai tukar. Coba muat ulang halaman.');
+      return;
+    }
+
+    const requiredAllowance = BigInt(Math.ceil(parsedAmount / stableCoinRate * 1_000_000));
+
+    if (allowance < requiredAllowance) {
+      const allowanceIdr = Number(allowance) * stableCoinRate / 1_000_000;
+      setSubmitError(
+        `Allowance wallet kamu (${formatIDR(Math.floor(allowanceIdr))}) tidak mencukupi untuk nominal ini (${formatIDR(parsedAmount)}). ` +
+        `Silakan naikkan allowance di halaman (${<Link to="/onboarding" className="underline">onboarding</Link>}) terlebih dahulu.`
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const order = await request<Order>('/api/orders', {
@@ -188,6 +217,21 @@ export function RekberCreatePage() {
                   </div>
                 </div>
               )}
+
+              {allowance !== null && stableCoinRate !== null && (() => {
+                const allowanceIdr = Number(allowance) * stableCoinRate / 1_000_000;
+                const isExceeded = parsedAmount > 0 && parsedAmount > Math.floor(allowanceIdr);
+                return (
+                  <div className={`rounded-xl border p-3 text-xs ${isExceeded ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-slate-200 bg-slate-50/70 text-slate-500'}`}>
+                    <span className="font-medium">Allowance wallet:</span> {formatIDR(Math.floor(allowanceIdr))}
+                    {isExceeded && (
+                      <span className="block mt-1 text-amber-700">
+                        Nominal melebihi allowance. Silakan naikkan allowance di halaman onboarding.
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
 
               <Field
                 label="Nomor DANA (tujuan pencairan)"

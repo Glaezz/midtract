@@ -71,10 +71,10 @@ export function LandingPage() {
           </span>
 
           <h1 className="mx-auto mt-6 max-w-2xl text-4xl leading-tight font-extrabold tracking-tight text-slate-900 sm:text-5xl">
-            Transaksi online lebih aman, tanpa perlu ribet Web3.
+            Transaksi online lebih aman, tanpa perlu ribet!
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg">
-            Dana pembeli terkunci otomatis di kontrak pintar. Barang diterima, baru dana dilepas ke
+            Dana pembeli terkunci otomatis di kontrak pintar Web3. Barang diterima, baru dana dilepas ke
             penjual. Transparan di blockchain, sesederhana rekber biasa.
           </p>
 

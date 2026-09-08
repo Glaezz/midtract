@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Plus, ShoppingBagOpen, Storefront } from '@phosphor-icons/react';
 import { useApiClient } from '$lib/utils/apiClient';
 import { Container } from '$lib/components/atoms/Container';
@@ -8,6 +8,8 @@ import { Skeleton } from '$lib/components/atoms/Skeleton';
 import { EmptyState } from '$lib/components/atoms/EmptyState';
 import { StatusBadge } from '$lib/components/atoms/StatusBadge';
 import { formatIDR } from '$lib/utils/format';
+import { getAllowance } from '$lib/config/readOnlyContracts';
+import { usePrivy } from '@privy-io/react-auth';
 
 type OrderSummary = {
   orderCode: string;
@@ -35,10 +37,27 @@ function OrderListSkeleton() {
 }
 
 export function DashboardPage() {
+  const { ready, authenticated, user, login } = usePrivy();
   const { request } = useApiClient();
   const [tab, setTab] = useState<'seller' | 'buyer'>('seller');
   const [orders, setOrders] = useState<OrderSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+    const navigate = useNavigate();
+
+    useEffect(() => {
+      if (!ready || !authenticated || !user?.wallet?.address) {
+        navigate('/login');
+      } else {
+      
+  
+        getAllowance(user.wallet.address).then((allowance) => {
+          // Threshold sederhana: allowance > 0 dianggap sudah pernah onboarding.
+          navigate(allowance > 0n ? '/dashboard' : '/onboarding');
+        });
+
+      }
+    }, [ready, authenticated, user, navigate]);
 
   useEffect(() => {
     setIsLoading(true);
