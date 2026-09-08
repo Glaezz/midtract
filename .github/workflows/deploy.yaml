@@ -107,6 +107,7 @@ jobs:
             **/src/**
             **/.git*
             **/.git*/**
+            **/node_modules/**
             .env
             tsconfig.json
             README.md
